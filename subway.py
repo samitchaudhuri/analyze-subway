@@ -401,11 +401,15 @@ def entries_histogram(turnstile_weather, useImprovedData):
     #plt.legend()
     #return plt
 
-    # plot a historgram for hourly entries when it is raining and not raining - use ggplot
-    plot = ggplot(aes(x='ENTRIESn_hourly', fill='rain', color='rain', legend=True), data=turnstile_weather) +\
-        geom_histogram(binwidth=300) +\
-        xlim(low=0, high=6000) +\
-        ggtitle('Histogram of ENTRIESn_hourly') + xlab('Entriesn_hourly') + ylab('Frequency')
+    # plot a historgram for hourly entries when it is raining and not
+    # raining - use ggplot
+    plot = ggplot(aes(x='ENTRIESn_hourly', fill='rain', color='rain',
+                      legend=True), data=turnstile_weather) +\
+           geom_histogram(binwidth=300) +\
+           xlim(low=0, high=6000) +\
+           ggtitle('Histogram of ENTRIESn_hourly') +\
+           xlab('Entriesn_hourly') +\
+           ylab('Frequency')
     return plot
 
 def examine_residuals(outcomes, predictions, prefix):
@@ -519,7 +523,7 @@ def plot_master_weather_data(turnstile_weather, useImprovedData):
 
 # Analyze Subway Data
 # ------------------------------------
-def mann_whitney_plus_means(turnstile_weather):
+def run_stats_inference(turnstile_weather):
     '''
     Useful web sites 
     http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mannwhitneyu.html
@@ -534,7 +538,20 @@ def mann_whitney_plus_means(turnstile_weather):
     without_rain_mean = np.mean(without_rain)
     U, p = scipy.stats.mannwhitneyu(with_rain, without_rain)
 
-    return with_rain_mean, without_rain_mean, U, p # leave this line for the grader
+    with_rain = turnstile_weather[turnstile_weather.rain == 1]['ENTRIESn_hourly']
+    without_rain = turnstile_weather[turnstile_weather.rain == 0]['ENTRIESn_hourly']
+    print "rainy day mean    = ", np.mean(with_rain)
+    print "non-rainy day mean = ", np.mean(without_rain)
+    U, p = scipy.stats.mannwhitneyu(with_rain, without_rain)
+    print "Mann Whitney U = ", U
+    print "one-tailed p-value: P > U = ", p
+    alpha = 0.5   # significance level
+    # one-tailed test, two-tailed hypothesis
+    if (2*p) < alpha:
+        print "Reject null hypotheis because P > |U| = {0} < {1}%".format(2*p*100, alpha)
+    else:
+        print "Cannot reject null hypotheis becuase P > |U| = {0} >= {1}%".format(2*p*100, alpha)
+    #return with_rain_mean, without_rain_mean, U, p # leave this line for the grader
 
 
 def select_features_and_outcomes(df, aggrDaily):
@@ -615,10 +632,10 @@ if __name__ == '__main__':
     wrangleData = False
     useImprovedData = True
     aggrDaily = False
-    visualizeData = True
-    runMannWhitney = False
+    visualizeData = False
+    infer_stats = True
     runGradientDescent = False
-    runOLS = False
+    runOLS = True
 
     # Read data into a pandas dataframe
     #turnstile_weather = pandas.read_csv(input_filename)
@@ -660,21 +677,16 @@ if __name__ == '__main__':
     if visualizeData==True:
         plot = entries_histogram(turnstile_weather, useImprovedData)
         #plot.savefig('plots/'+imagename)
-        ggsave(imagename, plot, path='plots', width=6, height=4, bbox_inches='tight')
+        ggsave(imagename, plot, path='plots', width=6, height=4,
+               bbox_inches='tight')
         plot_master_weather_data(turnstile_weather, useImprovedData)
 
     # Lesson 3 - Analyze
     # ----------------------------------------
     # The hourly entries data are not normally distributed. So we cannot perfom
     # Welch's T-test. Let's perform mann whitney test.
-    if runMannWhitney == True:
-        mann_whitney_result = mann_whitney_plus_means(turnstile_weather)
-        print "Mean of entries with rain    = ", mann_whitney_result[0]
-        print "Mean of entries without rain = ", mann_whitney_result[1]
-        print "Mann Whitney U               = ", mann_whitney_result[2]
-        print "Single-tail p-value          = ", mann_whitney_result[3]
-        print "Two-tail p-value             = ", 2*mann_whitney_result[3]
-
+    if infer_stats == True:
+        run_stats_inference(turnstile_weather)
 
     # Predict with gradient descent linear regression
     outcomes, features = select_features_and_outcomes(turnstile_weather, aggrDaily)

@@ -1,6 +1,6 @@
 ## Analyzing the NYC Subway Dataset ##
 
-Today we will investigate the relation between weather and subway ridership in New York City in May 2011. All data and code is available in the [git repository \[1\]][1].
+Today we will investigate the relation between weather and subway ridership in New York City in May 2011. All data and code is available in the [git repository \[gitRepo\]][&gitRepo].
 
 The weather data, downloaded from [\[weatherData\]][&weatherData], includes information regarding temperature, daily precipitation, barometric pressure, and wind speed, etc.
 
@@ -27,7 +27,6 @@ plot = ggplot(aes(x='ENTRIESn_hourly', fill='rain', color='rain',
 ggsave(imagename, plot, path='plots', width=6, height=4,
        bbox_inches='tight')
 ```
-
 <img class="displayed" src="plots/entries_hist.png" width="600px" height="auto">>
 
 The x-axis has been truncated at 6000 to leave out outliers in the
@@ -156,6 +155,148 @@ days.
 
 ### Linear Regression ###
 
+We use the following techniques to compute the coefficients theta and
+produce prediction for ENTR	IESn_hourly in your regression model:
+
+* Gradient descent (as implemented in exercise 3.5)
+* OLS using Statsmodels [\[olsWiki\]][&olsWiki] 
+
+Models are created using both Gradient descent and Ordinary Least
+Squares using statsmodesl [\[olsStats\]][&olsStats]. Although R2
+values obtained from both models are similar, the residual mean from
+the OLS predictions is 0.01 which closer to 0 than the residual mean
+of 0.69 from gradient descent predictions.
+
+We started with a small set of features and then gradually expanded
+the set to improve the performance of the model. We started with a
+minimal set of feature variables, hour (int64), rain (0-1), fog (0-1),
+and a variable for turnstile unit. Later we added another 0-1 variable
+called 'weekday' that indicates whether it is a working day or a
+weekend. We used the following code to determine this variable
+
+```python
+turnstile_weather['day_week'] = turnstile_weather['datetime'].
+    map(lambda x: pandas.to_datetime(x, dayfirst=True).weekday())
+turnstile_weather['weekday'] =
+    turnstile_weather['day_week'].map(lambda x: 1 if x < 5 else 0)
+```
+
+Since the tunstile unit is described by non-numerical values, we
+had to convert them into 466 different 0-1 dummy variables before
+using them in a regresssion model using the following code
+
+```python
+dummy_units = pandas.get_dummies(df['UNIT'], prefix='unit')
+features = features.join(dummy_units)
+```
+
+Why did you select these features in your model? We are looking for
+specific rea sons that lead you to believe that the selected features
+will contribute to the predictive power of your model.
+
+Your reasons might be based on intuition. For example, response for
+fog might be: “I decided to use fog because I thought that when it is
+very foggy outside people might decide to use the subway more often.”
+
+Your reasons might also be based on data exploration and
+experimentation, for example: “I used feature X because as soon as I
+included it in my model, it drastically improved my R2 value.”
+
+The feature variables used in the regression are explained below
+
+* For predicting hourly entries, hour should be a feature variable.
+* The Mann-Whitney U test indicates rain increases average ridership,
+  so rain is used as a feature variable.
+* Common sense tells us ridership is impacted by fog, hence fog was
+  included.
+* Similarly, we believe a causal connection exists between ridership
+  and 'weekday'.
+* The dummy variables help us distinguish between low-volume and
+  high-volume stations. Without them, each station is treated exactly
+  the same. The dummy variables provide a different baseline
+  (intercept) for each station, upon which the other features act as
+  modifiers.
+
+What are the coefficients (or weights) of the non-dummy features in
+your linear regression model?
+
+The coefficients of the non-dummy features obtained from both the
+original and the improved data sets are given in the follwoing table
+ 
+<table>
+	<tr>
+		<th>Variable</th>
+		<th>Coefficient from Original Dataset</th>
+		<th>Coefficient from Improved Dataset</th>
+    </tr>
+    <tr>
+		<td>hour</td>
+		<td>4.63609894e+02 </td>
+		<td>8.58068182e+02</td>
+	 </tr>
+	 <tr>
+		<td>rain</td>
+		<td>-3.72191463e+01</td>
+		<td>2.43552116e+01</td>
+	 </tr>
+	 <tr>
+		<td>fog</th>
+		<td>1.81279042e+01</td>
+		<td>-5.87978269e+01</td>
+	 </tr>
+	 <tr>
+		<td>weekday</td>
+		<td>2.44304279e+02</td>
+		<td>4.39333366e+02</td>
+	 </tr>
+</table>
+
+What is your model’s R2 (coefficients of determination) value?
+
+When trained and tested on the original data, the Gradient descent
+model has an R2 value of 0.468331243229 and the OLS model has an R2
+value of 0.46830639288.
+
+When trained and tested on the improved data, the Gradient descent
+model has an R2 value of 0.481783237507 and the OLS model has an
+R2 value of 0.481782387414.
+
+<table>
+	<tr>
+		<th>Regression Method</th>
+		<th>R2 on Original Dataset</th>
+		<th>R2 on Improved Dataset</th>
+	</tr>
+	<tr>
+		<td>Gradient Descent</td>
+		<td>0.468331243229</td>
+		<td>0.46830639288</td>
+	</tr>
+	<tr>
+		<td>OLS</td>
+		<td>0.481783237507</td>
+		<td>0.481782387414</td>
+	</tr>
+</table>
+
+What does this R2 value mean for the goodness of fit for your
+regression model? Do you think this linear model to predict ridership
+is appropriate for this dataset, given this R2 value?
+
+The R2 value, alternatively called the coefficient of determination,
+measures the models ability to account for the variability in the data
+relative to a intercept-only model which merely predicts the mean. It
+varies from 0 to 1 and bigger is better. Baseline model has an R2 of
+0, and the perfect model has an R2 of 1.
+	
+The R2 value of our model is 0.493. In other words, it is able to
+identify 49% of the variation in the training data. Although we cannot
+evaluate a model only based on its R2 value, the R2 value of 49%
+is a quite reasonable rule-of-thumb guidance. That said, R2 values of
+time-series data can be tricky, and even a bad model can sometimgs
+have a 90% R2 value [\[rnauRs\]][&rnauRs]
+
+
 ### Visualization ###
 
 ### Do People Ride the Subway More when it is Raining ? ###
@@ -242,10 +383,9 @@ rph_plot = ggplot(aes(x='hour'), data=df) +\
 
 <img class="displayed" src="plots/hrhist.png" width="600px" height="auto">
 
-
-This problem has been addressed in the improved data set [\[combinedData\]][&combinedData].
-Indeed, it contains an even number of records for every 4-hour
-period. 
+This problem has been addressed in the improved data set
+[\[combinedData\]][&combinedData].  Indeed, it contains an even number
+of records for every 4-hour period.
 
 <img class="displayed" src="plots/hrhist_improved.png" width="600px" height="auto">
 
@@ -267,8 +407,8 @@ before using to to build predictive models.
 A careful examination of the residuals can tell us if our choice of
 the regression model is appropriate. Residuals are a form of error,
 and basically we expect the errors to be normally and independently
-distributed with a mean of 0 and some constant variance [5]. Here is a
-histogram of the residuals.
+distributed with a mean of 0 and some constant variance
+[\[nistEstats\]][&nistEstats]. Here is a histogram of the residuals.
 
 <img class="displayed" src="plots/gdes_residuals.png" width="600px" height="auto">
 
@@ -290,10 +430,10 @@ fancybox=True, shadow=True)
 Although the histogram looks a good fit for Gaussian distribution
 (symmetrical with peak in the middle), the normality test produces a
 p-value of 0.0. In other words, the residuals deviate from a normal
-distribution in a statistically significant manner [6]. This failure
-in the normality test needs further investigation: we may either
-examine if this caused by a few outliers, or swtich to non-parametric
-tests.
+distribution in a statistically significant manner
+[\[normTest\]][&normTest]. This failure in the normality test needs
+further investigation: we may either examine if this caused by a few
+outliers, or swtich to non-parametric tests.
 
 We could have worked a bit more to improve the performance of the
 model by a combination of the following two approaches.
@@ -310,34 +450,15 @@ Note that these two approaches are complimentary. If the model is too
 simple, it underfits the data (high bias) and its performance cannot
 be improved by feeding more data. If the model is too complex, it
 overfits the data (high variance), and its performance can be improved
-by tuning it with more data. </p>
+by tuning it with more data. 
 
 #### Shortcomings of Statistical Test ####
 
 The conclusions drawn based on Mann-Whitney U test results can be made
 stronger with additional descriptive statistics such as interquartile
-range [\[13\]][13].
-
+range [\[udacityMH\]][&udacityMH].
 
 ### References
-
-[&gitRepo]: https://github.com/samitchaudhuri/analyze-subway "Analyze New York City Subway Ridership"
-[&weatherData]: https://www.dropbox.com/s/7sf0yqc9ykpq3w8/weather_underground.csv "Underground Weather Data"
-[&combinedData]: https://www.dropbox.com/s/meyki2wl9xfa7yk/turnstile_data_master_with_weather.csv "Combined MTA and underground weather data."
-[&scipyMH]: http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mannwhitneyu.html "sipy.stats.mannwhitneyu"
-[&udacityMH]: https://storage.googleapis.com/supplemental_media/udacityu/649959144/MannWhitneyUTest.pdf "Understanding the Mann-Whitney U Test"
-[&tailTests]: http://www.ats.ucla.edu/stat/mult_pkg/faq/general/tail_tests.htm "What are the differences between one-tailed and two-tailed tests ?"
-[&tailed12]: http://graphpad.com/guides/prism/6/statistics/index.htm?one-tail_vs__two-tail_p_values.htm "One-tail vs. two-tail P values, GraphPad Software"
-[&paired]: https://en.wikipedia.org/wiki/Student%27s_t-test#Unpaired_and_paired_two-sample_t-tests "Unpaired and paired two-sample t-tests"
-[5]: http://www.itl.nist.gov/div898/handbook/pri/section2/pri24.htm "Are the model residuals well behaved?, NIST Engineering Statistics Handbook"
-[6]: http://www.graphpad.com/guides/prism/6/statistics/index.htm?stat_interpreting_results_normality.htm "Interpreting results: Normality tests, GraphPad Software"
-[7]: http://en.wikipedia.org/wiki/Ordinary_least_squares "Ordinary least 
-squares, Wikipedia"
-[8]: http://statsmodels.sourceforge.net/devel/generated/statsmodels.regression.linear_model.OLS.html "Statsmodels regression OLS"
-[9]: http://en.wikipedia.org/w/index.php?title=Linear_least_squares_(mathematics) "Linear least squares (mathematics), Wikipedia"
-[10]: http://en.wikipedia.org/wiki/Polynomial_regression "Polynomial regression, Wikipedia"
-[11]: http://people.duke.edu/~rnau/rsquared.htm#punchline "What's
-  a good value for R-squared ?"
 
 [\[gitRepo\] Analyze New York City Subway Ridership][&gitRepo]
 
@@ -354,3 +475,31 @@ squares, Wikipedia"
 [\[tailed12\] One-tail vs. two-tail P values, GraphPad Software] [&tailed12]
 
 [\[paired\] Unpaired and paired two-sample t-tests] [&paired]
+
+[\[olsWiki\] Ordinary least squares, Wikipedia] [&olsWiki]
+
+[\[olsStats\] Statsmodels regression OLS] [&olsStats]
+
+[\[nistEstats\] NIST Engineering Statistics Handbook] [&nistEstats]
+
+[\[normTest\] Interpreting results: Normality tests, GraphPad Software] [&normTest]
+
+[\[rnauRs\] What's a good value for R-squared ?] [&rnauRs]
+
+
+[&gitRepo]: https://github.com/samitchaudhuri/analyze-subway "Analyze New York City Subway Ridership"
+[&weatherData]: https://www.dropbox.com/s/7sf0yqc9ykpq3w8/weather_underground.csv "Underground Weather Data"
+[&combinedData]: https://www.dropbox.com/s/meyki2wl9xfa7yk/turnstile_data_master_with_weather.csv "Combined MTA and underground weather data."
+[&scipyMH]: http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mannwhitneyu.html "sipy.stats.mannwhitneyu"
+[&udacityMH]: https://storage.googleapis.com/supplemental_media/udacityu/649959144/MannWhitneyUTest.pdf "Understanding the Mann-Whitney U Test"
+[&tailTests]: http://www.ats.ucla.edu/stat/mult_pkg/faq/general/tail_tests.htm "What are the differences between one-tailed and two-tailed tests ?"
+[&tailed12]: http://graphpad.com/guides/prism/6/statistics/index.htm?one-tail_vs__two-tail_p_values.htm "One-tail vs. two-tail P values, GraphPad Software"
+[&paired]: https://en.wikipedia.org/wiki/Student%27s_t-test#Unpaired_and_paired_two-sample_t-tests "Unpaired and paired two-sample t-tests"
+[&nistEstats]: http://www.itl.nist.gov/div898/handbook/pri/section2/pri24.htm "Are the model residuals well behaved?, NIST Engineering Statistics Handbook"
+[&normTest]: http://www.graphpad.com/guides/prism/6/statistics/index.htm?stat_interpreting_results_normality.htm "Interpreting results: Normality tests, GraphPad Software"
+[&olsWiki]: http://en.wikipedia.org/wiki/Ordinary_least_squares "Ordinary least 
+squares, Wikipedia"
+[&olsStats]: http://statsmodels.sourceforge.net/devel/generated/statsmodels.regression.linear_model.OLS.html "Statsmodels regression OLS"
+[&rnauRs]: http://people.duke.edu/~rnau/rsquared.htm#punchline "What's a good value for R-squared ?"
+
+
