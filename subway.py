@@ -124,7 +124,7 @@ def fix_turnstile_data(dataset_path, filenames):
     for inName in filenames:
         infilename = dataset_path+inName
         with open(infilename, 'rb') as inFile:
-            outfilename = inName
+            outfilename = "updated"_inName
             with open(outfilename, 'wb') as outFile:
                 csvReader = csv.reader(inFile, delimiter=',')
                 csvWriter = csv.writer(outFile, delimiter=',')
@@ -328,12 +328,14 @@ def wrangle_turnstile_data(dataset_path, turnstile_files, master_data_filename, 
     turnstile_df.to_csv('turnstile_data_regular.csv')
 
     # Add hourly entries
-    turnstile_df = turnstile_df.groupby(['C/A','UNIT','SCP']).apply(get_hourly_entries)
+    turnstile_df = turnstile_df.groupby(['C/A','UNIT','SCP']).apply(
+        get_hourly_entries)
     turnstile_df.to_csv('turnstile_data_hourly_entries.csv')
 
     # Add get hourly exits
     #turnstile_df = pandas.read_csv('turnstile_data_hourly_entries.csv')
-    turnstile_df = turnstile_df.groupby(['C/A','UNIT','SCP']).apply(get_hourly_exits)
+    turnstile_df = turnstile_df.groupby(['C/A','UNIT','SCP']).apply(
+        get_hourly_exits)
     turnstile_df.to_csv('turnstile_data_hourly_entries_exits.csv')
 
     # Convert time to hour
@@ -465,13 +467,15 @@ def plot_riders_by_station(turnstile_weather):
     df_sum = df.groupby(['UNIT'], as_index=False)['ENTRIESn_hourly'].aggregate(np.sum)
     df = df.groupby(['UNIT'], as_index=False).aggregate(np.max)
     df.ENTRIESn_hourly = df_sum.ENTRIESn_hourly
-    station_plot = ggplot(aes(x='longitude', y='latitude', size='ENTRIESn_hourly', saturation='ENTRIESn_hourly'), data=df) +\
+    station_plot = ggplot(aes(x='longitude', y='latitude',
+                              size='ENTRIESn_hourly',
+                              saturation='ENTRIESn_hourly'), data=df) +\
         geom_point() +\
         ggtitle("MTA Entries By Station") + xlab('Station') + ylab('Entries')
     return station_plot
 
 # Which stations have more exits or entries at different times of day
-def plot_max_by_station(turnstile_weather):
+def plot_busiest_stations(turnstile_weather):
     df = turnstile_weather[['hour', 'latitude', 'ENTRIESn_hourly', 'EXITSn_hourly']]
 
     idx = df.groupby(['hour'])['ENTRIESn_hourly'].transform(max)==df['ENTRIESn_hourly']
@@ -486,7 +490,7 @@ def plot_max_by_station(turnstile_weather):
 
     plot = ggplot(aes(x='hour', y='latitude', color = 'variable', size='value'), data=df_melt)+\
         geom_point() +\
-        ggtitle("Where Most People Enter and Exit the Subway") + xlab('Hour of the Day') + ylab('Latitude of Station')
+        ggtitle("Busiest Subway Stations Hour by Hour") + xlab('Hour of the Day') + ylab('Location (Latitude) of Station')
 
     return plot
 
@@ -500,10 +504,11 @@ def plot_master_weather_data(turnstile_weather, useImprovedData):
         ggsave(imagename, station_plot, path='plots', width=6, height=4, bbox_inches='tight')
 
         # Which stations have more exits or entries at different times of day
-        imagename = "max_bystation_improved.png" if (useImprovedData==True) else 'max_bystation.png'
-        max_bystation_plot = plot_max_by_station(turnstile_weather)
-        print max_bystation_plot
-        ggsave(imagename, max_bystation_plot, path='plots', width=12, height=10)
+        imagename = "busiest_stations_improved.png" if (useImprovedData==True) else 'busiest_stations.png'
+        busiest_stations_plot = plot_busiest_stations(turnstile_weather)
+        print busiest_stations_plot
+        #ggsave(imagename, busiest_stations_plot, path='plots', width=12, height=10)
+        ggsave(imagename, busiest_stations_plot, path='plots')        
     else:
         # Ridership by hour of the day
         imagename = "riders_byhour_improved.png" if (useImprovedData==True) else 'riders_byhour.png'
@@ -544,13 +549,13 @@ def run_stats_inference(turnstile_weather):
     print "non-rainy day mean = ", np.mean(without_rain)
     U, p = scipy.stats.mannwhitneyu(with_rain, without_rain)
     print "Mann Whitney U = ", U
-    print "one-tailed p-value: P > U = ", p
+    print "one-tailed p-value: P(x > y) = ", p
     alpha = 0.5   # significance level
     # one-tailed test, two-tailed hypothesis
     if (2*p) < alpha:
-        print "Reject null hypotheis because P > |U| = {0} < {1}%".format(2*p*100, alpha)
+        print "Reject null hypotheis because P (x > y) = {0} < {1}%".format(2*p*100, alpha)
     else:
-        print "Cannot reject null hypotheis becuase P > |U| = {0} >= {1}%".format(2*p*100, alpha)
+        print "Cannot reject null hypotheis becuase P(x > y) = {0} >= {1}%".format(2*p*100, alpha)
     #return with_rain_mean, without_rain_mean, U, p # leave this line for the grader
 
 
@@ -631,10 +636,10 @@ if __name__ == '__main__':
     # Configuration variables
     wrangleData = False
     useImprovedData = True
-    aggrDaily = False
-    visualizeData = False
+    aggrDaily = True
+    visualizeData = True
     infer_stats = True
-    runGradientDescent = False
+    runGradientDescent = True
     runOLS = True
 
     # Read data into a pandas dataframe

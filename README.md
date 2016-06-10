@@ -1,12 +1,107 @@
 ## Analyzing the NYC Subway Dataset ##
 
-Today we will investigate the relation between weather and subway ridership in New York City in May 2011. All data and code is available in the [git repository \[gitRepo\]][&gitRepo].
-
-The weather data, downloaded from [\[weatherData\]][&weatherData], includes information regarding temperature, daily precipitation, barometric pressure, and wind speed, etc.
-
-The subway data is a sample of the MTA New York City Subway dataset that includes hourly entries and exits at the turnstiles of different subway stations.
+Today we investigate the relation between weather and subway ridership
+in New York City in May 2011. All data and code is available for
+download from the git repository [\[gitRepo\]][&gitRepo].
 
 ### Wrangling the Data ###
+
+The subway data is a sample of the MTA New York City Subway dataset
+that includes hourly entries and exits at the turnstiles of different
+subway stations. Multiple .csv files contating this data can be
+downloaded from the Metropolitan Transportation Authority (New York)
+web site; a link to one such MTA turnstile file can be seen at
+the URL [\[mta050711\]][&mta050711]. These files contain 8 set of
+entries per row, where each set gives the cumulative number of entries
+and exits at different times.
+
+The following code separates the entries into individual rows:
+
+```python
+for inName in filenames:
+    infilename = dataset_path+inName
+    with open(infilename, 'rb') as inFile:
+        outfilename = "updated_"+inName
+        with open(outfilename, 'wb') as outFile:
+            csvReader = csv.reader(inFile, delimiter=',')
+            csvWriter = csv.writer(outFile, delimiter=',')
+            for row in csvReader:
+                for idx in range(8):
+                    newRow = row[0:3] + row[3+5*idx:8+5*idx]
+                    csvWriter.writerow(newRow)
+            outFile.close()
+        inFile.close()
+
+```
+
+All the individually updated files are then consolidated into a master
+file with a column headers:
+'C/A,UNIT,SCP,DATEn,TIMEn,DESCn,ENTRIESn,EXITSn'. This master file is
+then loaded into a pandas data frame and filtered to retain only the regular
+turnstiles.
+
+```python
+turnstile_df = pandas.read_csv(filename)
+turnstile_df = turnstile_df[turnstile_df.DESCn == 'REGULAR']
+```
+
+For each unique turnstile, we used the following code to compute hourly entry and exit numbers from cumulative entry and exit numbers.
+
+```python
+# Cumulative to hourly
+def get_hourly_entries(df):
+    hourlyEntries = df.ENTRIESn - df.ENTRIESn.shift(1) 
+    df['ENTRIESn_hourly'] = hourlyEntries.fillna(1)
+    return df
+turnstile_df = turnstile_df.groupby(['C/A','UNIT','SCP']).apply(
+			       get_hourly_entries)
+
+# Convert time to hour
+def time_to_hour(time):
+    dt = pandas.to_datetime(time, dayfirst=True)
+    hour = dt.hour
+    return hour
+turnstile_df['Hour'] = turnstile_df['TIMEn'].map(time_to_hour)
+
+# Reformat dates
+def reformat_subway_dates(date):
+    dt = datetime.datetime.strptime(date, "%m-%d-%y")
+    date_formatted = dt.strftime("%Y-%m-%d")
+    return date_formatted
+turnstile_df['DATEn'] = turnstile_df['DATEn'].map(reformat_subway_dates)
+
+turnstile_df.to_csv(final_data_filename)
+```
+
+The weather data, downloaded from [\[weatherData\]][&weatherData],
+includes information regarding temperature, daily precipitation,
+barometric pressure, and wind speed, etc.
+
+The subway data and the weather data are then joined together into a
+master dataset. A merged dataset is included in the repository.
+
+Finally the following code was used to tweak the master data to raname
+some columns, is also necessary. This includes creating 3 new columns:
+date time, day of the week, and weekday/weekend.
+
+```python
+# Disable false warnings from potetial chained assignment
+pandas.options.mode.chained_assignment = None
+
+# add new column datetime
+turnstile_weather['datetime'] = turnstile_weather['DATEn'] + ' ' + turnstile_weather['TIMEn']
+
+# rename column 'Hour' to 'hour'
+turnstile_weather.rename(columns = {'Hour':'hour'}, inplace=True)
+#turnstile_df['hour'] = turnstile_df['TIMEn'].map(lambda x: pandas.to_datetime(x, dayfirst=True).hour)
+
+# add new columns day_week,weekday
+turnstile_weather['day_week'] = turnstile_weather['datetime'].map(lambda x: pandas.to_datetime(x, dayfirst=True).weekday())
+turnstile_weather['weekday'] = turnstile_weather['day_week'].map(lambda x: 1 if x < 5 else 0)
+
+#pandasql does not deal well with strangely named columns
+turnstile_weather = turnstile_weather.rename(columns={'Unnamed: 0':'Idx_audit'})
+```
 
 ### Exploratory Data Analysis ###
 
@@ -30,41 +125,73 @@ ggsave(imagename, plot, path='plots', width=6, height=4,
 <img class="displayed" src="plots/entries_hist.png" width="600px" height="auto">>
 
 The x-axis has been truncated at 6000 to leave out outliers in the
-long tail. There are a lot more samples with no rain than rain. We
-suspect that more people enter and ride subways on rainy days. To test
-this hypothesis, we need to perform a statistical significance
+long tail. There are a lot more samples with no rain than with rain. We
+suspect that more people enter and ride subways on rainy days. However, establishing this hypothesis requirer a statistical significance
 test. Note that the neither of the rainy or non-rainy samples are
 normally distributed. Therefore the commonly used Welch’s T test does
 not apply here.
 
+Next we create a plot to show the stations that are the busiest hour
+by hour. Stations with most riders entering are shown in red, and
+stations with most riders exiting are shown in blue. The size of the
+dots are scaled according to the number of riders, so that we can
+compare how the maximum number of entries and exists vary throughout
+the day.
+
+While the x-asis shows the hour of the day, the y-axis shows the
+latitude of the stations. This gives a positional feel to the
+stations by showing how far toward north or south they are
+with respect to each other. One can see that most people travel
+from south to north in the morning and afternoon, while most people
+travel from north to south in the evening.
+
+![](plots/busiest_stations_improved.png?raw=true)
+
+The plot was created with the following code. 
+
+```python
+df = turnstile_weather[['UNIT', 'latitude', 'longitude', 'ENTRIESn_hourly']]
+df_sum = df.groupby(['UNIT'], as_index=False)['ENTRIESn_hourly'].aggregate(np.sum)
+df = df.groupby(['UNIT'], as_index=False).aggregate(np.max)
+df.ENTRIESn_hourly = df_sum.ENTRIESn_hourly
+station_plot = ggplot(aes(x='longitude', y='latitude',
+                          size='ENTRIESn_hourly',
+                          saturation='ENTRIESn_hourly'), data=df) +\
+    geom_point() +\
+    ggtitle("MTA Entries By Station") + xlab('Station') + ylab('Entries')
+```
+
+
 ### Statistical Inference ###
 
 Now that we have observed evidence in the sample data set that
-ridership in rainy days is larger than that in non-rainy days, we are
+ridership in rainy days is larger than that in the non-rainy days, we are
 ready to perform a statistical test and to report the confidence level
 in the evidence.
 
 The histograms of hourly ridership in rainy and non-rainy days show
-that the data is not normally distributed. So a parametric test is not
-appropriate on such data, and we used a non-parametric test such as
+that the data is not normally distributed. Hence a parametric test is not
+appropriate on such data. So we used a non-parametric test called
 Mann Whitney U test [\[udacityMH\]][&udacityMH] . Additionally we
 chose a confidence interval of 95%; i.e. we reject the null hypothesis
 if the p-value is less than 0.05.
 
-The distributions of the two populations, hourly riderships in rainy
-and hourly riderships in non-rainy days, are unknown. So instead of
-testing for means or distributions, we use Mann-Whitney U test to test
+Instead of comparing the unknown distributions, Mann-Whitney U test tests
 if we draw randomly from each population, whether one draw is likely
 to generate a higher value than the other. Stated mathematically,
-given a random draw x from population X of hourly ridership in reainy
+given a random draw x from population X of hourly ridership in rainy
 days, and a random draw y from population Y of hourly ridership in
 non-rainy days we formulate the two-tailed hypotheses as follows:
 
-* The alternative hypothesis states: Each hourly ridership in rainy days is more likely to be differnt than each houry ridersip in non-rainy days; i.e.
+* The alternative hypothesis states: each hourly ridership in rainy
+  days is more likely to be differnt than each houry ridersip in
+  non-rainy days; i.e.
 
-<center>H<sub>1</sub>: P (x > y) [math]\neq[/math] 0.5</center>
+<center>H<sub>1</sub>: P (x > y) \neq 0.5</center>
 
-* The corresponding null hypothesis states: Each hourly ridership in rainy days has equal chance of being greater or smaller than each houry ridersip in non-rainy days; i.e.
+* The corresponding null hypothesis states: each hourly ridership in
+  rainy days has equal chance of being greater or smaller than each
+  houry ridersip in non-rainy days; i.e.
 
 <center>H<sub>0</sub>: P (x > y) = 0.5</center>
 
@@ -296,12 +423,10 @@ is a quite reasonable rule-of-thumb guidance. That said, R2 values of
 time-series data can be tricky, and even a bad model can sometimgs
 have a 90% R2 value [\[rnauRs\]][&rnauRs]
 
+### Conclusion: Do People Ride the Subway More when it is Raining ? ###
 
-### Visualization ###
-
-### Do People Ride the Subway More when it is Raining ? ###
-
-Our analyses of the May 2011 data show that more people ride the subway when it is raining.
+Our analyses of the May 2011 data show that more people ride the
+subway when it is raining.
 
 Our exploratory data analyses indicated that more people might ride
 the subway on rainy days. When we compare the density plots or hourly
@@ -462,6 +587,8 @@ range [\[udacityMH\]][&udacityMH].
 
 [\[gitRepo\] Analyze New York City Subway Ridership][&gitRepo]
 
+[\[mta050711\] MTA Turnstile Data, May 2011] [&mta050711] 
+
 [\[weatherData\] Underground Weather Data] [&weatherData]
 
 [\[combinedData\] Combined MTA and underground weather data.] [&combinedData]
@@ -488,6 +615,7 @@ range [\[udacityMH\]][&udacityMH].
 
 
 [&gitRepo]: https://github.com/samitchaudhuri/analyze-subway "Analyze New York City Subway Ridership"
+[&mta050711]: http://web.mta.info/developers/data/nyct/turnstile/turnstile_110507.txt "MTA Turnstile Data, May 2011"
 [&weatherData]: https://www.dropbox.com/s/7sf0yqc9ykpq3w8/weather_underground.csv "Underground Weather Data"
 [&combinedData]: https://www.dropbox.com/s/meyki2wl9xfa7yk/turnstile_data_master_with_weather.csv "Combined MTA and underground weather data."
 [&scipyMH]: http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mannwhitneyu.html "sipy.stats.mannwhitneyu"
