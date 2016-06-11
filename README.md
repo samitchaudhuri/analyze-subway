@@ -1,4 +1,4 @@
-## Analyzing the NYC Subway Dataset ##
+### Introduction ###
 
 Today we investigate the relation between weather and subway ridership
 in New York City in May 2011. All data and code is available for
@@ -434,7 +434,8 @@ entries on rainy and non-rainy days both on weekends and weekdays, we
 see that the weekday density plot of rainy days (color blue) have
 wider right tail.
 
-![](plots/riders_density.png?raw=true)
+
+<img class="displayed" src="plots/riders_density.png" width="600px" height="auto">>
 
 The above plot was created with the following code. Note that the legends
 do not work in the current version of ggplot.
