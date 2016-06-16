@@ -626,8 +626,7 @@ range [\[udacityMH\]][&udacityMH].
 [&paired]: https://en.wikipedia.org/wiki/Student%27s_t-test#Unpaired_and_paired_two-sample_t-tests "Unpaired and paired two-sample t-tests"
 [&nistEstats]: http://www.itl.nist.gov/div898/handbook/pri/section2/pri24.htm "Are the model residuals well behaved?, NIST Engineering Statistics Handbook"
 [&normTest]: http://www.graphpad.com/guides/prism/6/statistics/index.htm?stat_interpreting_results_normality.htm "Interpreting results: Normality tests, GraphPad Software"
-[&olsWiki]: http://en.wikipedia.org/wiki/Ordinary_least_squares "Ordinary least 
-squares, Wikipedia"
+[&olsWiki]: http://en.wikipedia.org/wiki/Ordinary_least_squares "Ordinary least squares, Wikipedia"
 [&olsStats]: http://statsmodels.sourceforge.net/devel/generated/statsmodels.regression.linear_model.OLS.html "Statsmodels regression OLS"
 [&rnauRs]: http://people.duke.edu/~rnau/rsquared.htm#punchline "What's a good value for R-squared ?"
 
