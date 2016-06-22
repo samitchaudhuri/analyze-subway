@@ -145,7 +145,7 @@ with respect to each other. One can see that most people travel
 from south to north in the morning and afternoon, while most people
 travel from north to south in the evening.
 
-![]({{ site.url }}/assets/images/busiest_stations_improved.png?raw=true)
+![]({{ site.baseurl }}/assets/images/busiest_stations_improved.png?raw=true)
 
 The plot was created with the following code. 
 
