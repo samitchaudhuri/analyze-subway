@@ -379,7 +379,7 @@ def examine_master_data(df, useImprovedData):
         geom_histogram(binwidth=1) +\
         ggtitle(title) +\
         xlab('Hour or Entry') + ylab('Number of Records')
-    ggsave(imagename, rph_plot, path='plots', width=6, height=4, bbox_inches='tight')
+    ggsave(imagename, rph_plot, path='assets/images', width=6, height=4, bbox_inches='tight')
 
 
 # Visualize Subway Data
@@ -501,29 +501,29 @@ def plot_master_weather_data(turnstile_weather, useImprovedData):
         # How ridership varies based on Subway station
         imagename = "riders_bystation_improved.png" if (useImprovedData==True) else 'riders_bystation.png'
         station_plot = plot_riders_by_station(turnstile_weather)
-        ggsave(imagename, station_plot, path='plots', width=6, height=4, bbox_inches='tight')
+        ggsave(imagename, station_plot, path='assets/images', width=6, height=4, bbox_inches='tight')
 
         # Which stations have more exits or entries at different times of day
         imagename = "busiest_stations_improved.png" if (useImprovedData==True) else 'busiest_stations.png'
         busiest_stations_plot = plot_busiest_stations(turnstile_weather)
         print busiest_stations_plot
-        #ggsave(imagename, busiest_stations_plot, path='plots', width=12, height=10)
-        ggsave(imagename, busiest_stations_plot, path='plots')        
+        #ggsave(imagename, busiest_stations_plot, path='assets/images', width=12, height=10)
+        ggsave(imagename, busiest_stations_plot, path='assets/images')        
     else:
         # Ridership by hour of the day
         imagename = "riders_byhour_improved.png" if (useImprovedData==True) else 'riders_byhour.png'
         hour_plot = plot_riders_by_hour(turnstile_weather)
-        ggsave(imagename, hour_plot, path='plots', width=6, height=4, bbox_inches='tight')
+        ggsave(imagename, hour_plot, path='assets/images', width=6, height=4, bbox_inches='tight')
 
         # Ridership by day of week
         imagename = "riders_byday_improved.png" if (useImprovedData==True) else 'riders_byday.png'
         day_plot = plot_riders_by_day(turnstile_weather)
-        ggsave(imagename, day_plot, path='plots', width=6, height=4, bbox_inches='tight')
+        ggsave(imagename, day_plot, path='assets/images', width=6, height=4, bbox_inches='tight')
 
         # Rider desity on week days and weekends
         imagename = "riders_density_improved.png" if (useImprovedData==True) else 'riders_density.png'
         density_plot = plot_riders_density(turnstile_weather)
-        ggsave(imagename, density_plot, path='plots', width=6, height=4, bbox_inches='tight')
+        ggsave(imagename, density_plot, path='assets/images', width=6, height=4, bbox_inches='tight')
 
 
 # Analyze Subway Data
@@ -681,8 +681,8 @@ if __name__ == '__main__':
     imagename = "entries_hist_improved.png" if (useImprovedData==True) else 'entries_hist.png'
     if visualizeData==True:
         plot = entries_histogram(turnstile_weather, useImprovedData)
-        #plot.savefig('plots/'+imagename)
-        ggsave(imagename, plot, path='plots', width=6, height=4,
+        #plot.savefig('assets/images/'+imagename)
+        ggsave(imagename, plot, path='assets/images', width=6, height=4,
                bbox_inches='tight')
         plot_master_weather_data(turnstile_weather, useImprovedData)
 
@@ -705,7 +705,7 @@ if __name__ == '__main__':
         imagename='gdes_cost_history_improved.png' if (useImprovedData==True) \
             else 'gdes_cost_history.png'
         #plot = linreg.plot_cost_history(alpha, cost_history)
-        #ggsave(imagename, plot, path='plots', width=7, height=5)
+        #ggsave(imagename, plot, path='assets/images', width=7, height=5)
     
         # Calculate r-squared
         gdes_r_squared = linreg.compute_r_squared(outcomes, 

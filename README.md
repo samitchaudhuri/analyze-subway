@@ -122,7 +122,7 @@ plot = ggplot(aes(x='ENTRIESn_hourly', fill='rain', color='rain',
 ggsave(imagename, plot, path='plots', width=6, height=4,
        bbox_inches='tight')
 ```
-<img class="displayed" src="plots/entries_hist.png" width="600px" height="auto">>
+<img class="displayed" src="assets/images/entries_hist.png" width="600px" height="auto">>
 
 The x-axis has been truncated at 6000 to leave out outliers in the
 long tail. There are a lot more samples with no rain than with rain. We
@@ -145,7 +145,7 @@ with respect to each other. One can see that most people travel
 from south to north in the morning and afternoon, while most people
 travel from north to south in the evening.
 
-![](plots/busiest_stations_improved.png?raw=true)
+![]({{ site.url }}/assets/images/busiest_stations_improved.png?raw=true)
 
 The plot was created with the following code. 
 
@@ -435,7 +435,7 @@ see that the weekday density plot of rainy days (color blue) have
 wider right tail.
 
 
-<img class="displayed" src="plots/riders_density.png" width="600px" height="auto">>
+<img class="displayed" src="assets/images/riders_density.png" width="600px" height="auto">>
 
 The above plot was created with the following code. Note that the legends
 do not work in the current version of ggplot.
@@ -507,13 +507,13 @@ rph_plot = ggplot(aes(x='hour'), data=df) +\
 		   xlab('Hour or Entry') + ylab('Number of Records')
 ```
 
-<img class="displayed" src="plots/hrhist.png" width="600px" height="auto">
+<img class="displayed" src="assets/images/hrhist.png" width="600px" height="auto">
 
 This problem has been addressed in the improved data set
 [\[combinedData\]][&combinedData].  Indeed, it contains an even number
 of records for every 4-hour period.
 
-<img class="displayed" src="plots/hrhist_improved.png" width="600px" height="auto">
+<img class="displayed" src="assets/images/hrhist_improved.png" width="600px" height="auto">
 
 #### Shortcomings of Analysis ####
 
@@ -536,7 +536,7 @@ and basically we expect the errors to be normally and independently
 distributed with a mean of 0 and some constant variance
 [\[nistEstats\]][&nistEstats]. Here is a histogram of the residuals.
 
-<img class="displayed" src="plots/gdes_residuals.png" width="600px" height="auto">
+<img class="displayed" src="assets/images/gdes_residuals.png" width="600px" height="auto">
 
 ```python
 # Test residuals for normal distribution
